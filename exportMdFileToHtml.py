@@ -1,3 +1,4 @@
+import argparse
 import  os
 from shutil import copyfile, copyfileobj
 import shutil
@@ -10,49 +11,89 @@ from urllib.parse import unquote
 import urllib.request
 from random import seed,random,randint
 
+from torch import _linalg_check_errors
 
+parser = argparse.ArgumentParser(
+    description="Converts an Obsidian vault into HTML")
 
-if(len(sys.argv)!=2 and len(sys.argv)!=3 and len(sys.argv)!=4):
+parser.add_argument(
+    "-v", "--vault",
+    metavar="vault",
+    default=".",
+    help="Path to the vault root")
+
+parser.add_argument(
+    "index",
+    help="The index file of the vault"
+                    )
+
+parser.add_argument(
+    "-o", "--output_dir",
+    default="%(vault)/html",
+    help="Path to place the generated HTML")
+
+parser.add_argument(
+    "-c", "--convert_to_html",
+    type=bool,
+    nargs='?',
+    default=True,
+    help="Flag: convert to html. Default= True"
+)
+
+parser.add_argument(
+    "-d", "--download_images",
+    type=bool,
+    nargs='?',
+    default=False,
+    const=True,
+    help="Flag: download external images. Default= False"
+)
+
+""" if(len(sys.argv)!=2 and len(sys.argv)!=3 and len(sys.argv)!=4):
     print("Wrong number of arguments!\nUsage: python3 exportMdFileToHtml.py <filename.md> <[y/n](optional) y=default => creates a html-export in export vault> <[y/n](optional) y=default => download extrernal images locally>")
-    quit()
+    quit() """
+
+args = parser.parse_args()
 
 mainFileToExport = ""
-fileToFind = str(sys.argv[1])
-for path in Path('.').rglob(fileToFind):
+fileToFind = args.index
+vault = args.vault
+
+for path in Path(vault).rglob(fileToFind):
     mainFileToExport=path
 
-exportToHtml = True
-downloadImages = True
-if len(sys.argv) >= 3:
-    if str(sys.argv[2]).upper() == "N":
-        print("Exporting: " + str(mainFileToExport) + " to vault")
-        exportToHtml = False
-    if len(sys.argv) == 4 and str(sys.argv[3]).upper() == "N":
-        downloadImages = False
+exportToHtml = args.convert_to_html
+downloadImages = args.download_images
+if exportToHtml:
+    print("Exporting: " + str(mainFileToExport) + " to an html copy")
 else:
-    print("Exporting: " + str(mainFileToExport) + " + creates a html-copy in vault")
+    print("Exporting: " + str(mainFileToExport) + "to a copy")
 
 
 if(mainFileToExport == ""):
-    print("File not found!\nRun this script from the root of obsidian vault\nUsage: python3 exportMdFileToHtml.py <filename.md> <[y/n](optional) y=default => creates a html-export in export vault>")
+    print("File not found!\nPlease specify an index file.")
+    print("%(help)")
     quit()
 
-exportDir = os.path.expanduser('~/export_' + fileToFind.split('/')[-1].replace(".md",""))
+exportDir = args.output_dir + "/" + fileToFind.split('/')[-1].replace(".md","")
 print("Path to export vault: " + str(exportDir) + "\n")
 
 if os.path.exists(exportDir) and os.path.isdir(exportDir):
     shutil.rmtree(exportDir)
-destFile = os.path.join(exportDir,mainFileToExport)
+    
+destFile = os.path.join(exportDir,mainFileToExport.name)
 Path(os.path.dirname(destFile)).mkdir(parents=True, exist_ok=True)
-assetPath = os.path.join(exportDir,"downloaded_images","test")
-Path(os.path.dirname(assetPath)).mkdir(parents=True, exist_ok=True)
+if (downloadImages):
+    assetPath = os.path.join(exportDir,"downloaded_images","test")
+    Path(os.path.dirname(assetPath)).mkdir(parents=True, exist_ok=True)
+
 copyfile(mainFileToExport, destFile)
 filesAllreadyCopied = [mainFileToExport]
 
 
 def findRelPath(linkPath, currentFile):
     #Find filepath rel currentFile a la html
-    pRoot = Path(".") #root
+    pRoot = Path(vault) #root
     pCurr = Path(currentFile)
     pLink = Path(linkPath)
     pCurrRelRoot = str(pCurr.relative_to(pRoot))
@@ -74,26 +115,50 @@ def copyFileToExport(fileToFind, currentFile, traverse=False):
     if(linkedFilePath != ""):
         destDir = os.path.join(exportDir,linkedFilePath)
         Path(os.path.dirname(destDir)).mkdir(parents=True, exist_ok=True)
-        copyfile(linkedFilePath, destDir)
-        if(traverse and linkedFilePath not in filesAllreadyCopied): #prevent circle ref
+        
+        if(linkedFilePath not in filesAllreadyCopied): #prevent circle ref
+            copyfile(linkedFilePath, destDir)
             filesAllreadyCopied.append(linkedFilePath)
-            readFilesRecursive(linkedFilePath)
+            if(traverse): 
+                readFilesRecursive(linkedFilePath)
+
         return findRelPath(linkedFilePath,currentFile)
 
 def findMdFile(line, currentFile):
-    pattern = re.compile(r"(?<!!)\[\[([^\]]*)\]\]")
+    pattern = re.compile(r"(?<!!)\[\[([^|\]]*)(?:\|([^\]]*))?\]\]")
     for (file) in re.findall(pattern, line):
-        fileOnly = file.split("#")[0] 
-            
+        linkedFile = file[0].split("/")[-1]
+        linkFragments = linkedFile.split("#")
+        fileOnly = linkFragments[0]
         ancor = ""
-        if(len(file.split("#"))>1):
-            ancor = "#" + file.split("#")[1].replace(" ","_").replace("(","").replace(")","")
+        #If the link already has an alias...
+        if(len(file[1]) >0):
+            #Capture the alias
+            alias = file[1]
+
+        #Else if the link points to a heading...
+        elif(len(linkedFile.split("#"))>1): 
+            #Capture and convert the heading for html
+            alias = linkedFile.split("#")[1].replace(" ","_").replace("(","").replace(")","")
+            ancor = "#" + alias
+        # Else set the alias to the filename
+        else:
+            alias = linkedFile.replace(".md","")
+
+        
+ 
+            
+
+        
         newFile = copyFileToExport(fileOnly + '.md', currentFile, traverse=True) 
+
+        #TODO Reconstruct the link text from it's parts to replace the markdown link with an html link
+        #[[Path + Linked File + Header (+ |Alias)]]
         if(exportToHtml):
             if(newFile and len(newFile)>0):
-                line = line.replace('[[' + file + ']]','<a href="./' + newFile + ".html" + ancor + '">' + newFile.replace("\\","/").split("/")[-1].replace(".md","") + ancor + '</a>')
+                line = line.replace('[[' + linkedFile + ']]','<a href="./' + newFile + ".html" + ancor + '">' + alias + '</a>')
             else: ##self ref
-                line = line.replace('[[' + file + ']]', '<a href="./' + fileOnly + ".md.html" +  ancor + '">' + fileOnly.replace("\\","/").split("/")[-1].replace(".md","") + ancor + '</a>')
+                line = line.replace('[[' + linkedFile + ']]', '<a href="./' + fileOnly + ".md.html" +  ancor + '">' + alias + '</a>')
     return line
 
 seed(1)
@@ -325,8 +390,8 @@ def readFilesRecursive(path):
 
 readFilesRecursive(mainFileToExport)
 if(exportToHtml):
-    with open(os.path.join(exportDir,"index.html"), 'w') as outputfile:
-        outputfile.write('<!DOCTYPE html>\n<html>\n\t<head>\n\t\t<meta http-equiv="Refresh" content="0; url=\'./' + str(mainFileToExport) + '.html\'" />\n\t</head>\n</html>')
+    #with open(os.path.join(exportDir,"index.html"), 'w') as outputfile:
+    #    outputfile.write('<!DOCTYPE html>\n<html>\n\t<head>\n\t\t<meta http-equiv="Refresh" content="0; url=\'./' + str(mainFileToExport) + '.html\'" />\n\t</head>\n</html>')
     
     with open(os.path.join(exportDir,"treeview.html"), 'w') as outputfile:
         outputfile.write("<!DOCTYPE html>\n")
@@ -344,7 +409,7 @@ if(exportToHtml):
         
         outputfile.write('<body style="background: #F0F0F0; ">\n')
         filesAllreadyCopied.sort()
-        outputfile.write("<ul>")
+        outputfile.write("<ul>\n")
         for f in str(filesAllreadyCopied[0]).replace("\\","/").split("/"):
             if('.md' in f):
                 outputfile.write('<li>' + '<a href="./' + str(filesAllreadyCopied[0]) + ".html" + '">' + str(f).replace(".md","") + '</a>' + '</li>\n')
