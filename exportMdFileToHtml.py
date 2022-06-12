@@ -420,6 +420,12 @@ if(exportToHtml):
         outputfile.write('<body style="background: #F0F0F0; ">\n')
 
         #Generate the folder structure as a list
+        for child in Path(exportDir).glob("*"):
+            relPath = os.path.commonpath() 
+
+
+
+        """
         filesAllreadyCopied.sort()
         outputfile.write("<ul>\n")
         for f in str(filesAllreadyCopied[0]).replace("\\","/").split("/"):
@@ -449,6 +455,7 @@ if(exportToHtml):
 
         for i in str(filesAllreadyCopied[-1]).replace("\\","/").split("/"):
             outputfile.write("</ul>")
+        """
        
         outputfile.write("</body>\n")
         outputfile.write("</html>\n")
