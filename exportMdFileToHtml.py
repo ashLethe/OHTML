@@ -107,8 +107,9 @@ def copyFileToExport(fileToFind, currentFile, traverse=False):
     for path in Path(vault).rglob(fileToFind):
         linkedFilePath=path
     if(linkedFilePath != ""):
-        relPath = findRelPath(linkedFilePath,currentFile)
-        destDir = os.path.join(exportDir,relPath)
+        #relPath = findRelPath(linkedFilePath,currentFile)
+        destDir = str(linkedFilePath).replace("\\","/")
+        destDir = destDir.replace(vault,exportDir)
         Path(os.path.dirname(destDir)).mkdir(parents=True, exist_ok=True)
         
         if(linkedFilePath not in filesAllreadyCopied): #prevent circle ref
@@ -310,8 +311,8 @@ def insertParagraphs(line):
 
 def findLines(line):
     if  '---' in line:
-        line = "<hr>"
-    return line + "\n"
+        line = "<hr>" + "\n"
+    return line
 
 
 def readFilesRecursive(path):
@@ -319,9 +320,10 @@ def readFilesRecursive(path):
         data = readfile.readlines()
 
     antalAssets = 0
-    
+    destDir = str(path).replace("\\","/")
+    destDir = destDir.replace(vault,exportDir)
     if(exportToHtml):
-        with open(os.path.join(exportDir,str(path) + ".html"), 'w', encoding='utf-8') as outputfile:
+        with open(destDir + ".html", 'w', encoding='utf-8') as outputfile:
             outputfile.write("<!DOCTYPE html>\n")
             outputfile.write("<html>\n")
             outputfile.write("<head>\n")
@@ -416,6 +418,8 @@ if(exportToHtml):
         outputfile.write("</head>\n")
         
         outputfile.write('<body style="background: #F0F0F0; ">\n')
+
+        #Generate the folder structure as a list
         filesAllreadyCopied.sort()
         outputfile.write("<ul>\n")
         for f in str(filesAllreadyCopied[0]).replace("\\","/").split("/"):
@@ -448,4 +452,5 @@ if(exportToHtml):
        
         outputfile.write("</body>\n")
         outputfile.write("</html>\n")
+
 print("Done!\n\nPath to export: " + str(exportDir) + ("/index.html" if exportToHtml else '' ))
