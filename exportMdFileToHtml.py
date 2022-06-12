@@ -47,10 +47,6 @@ parser.add_argument(
     help="Flag: download external images. Default= False"
 )
 
-""" if(len(sys.argv)!=2 and len(sys.argv)!=3 and len(sys.argv)!=4):
-    print("Wrong number of arguments!\nUsage: python3 exportMdFileToHtml.py <filename.md> <[y/n](optional) y=default => creates a html-export in export vault> <[y/n](optional) y=default => download extrernal images locally>")
-    quit() """
-
 args = parser.parse_args()
 
 mainFileToExport = ""
@@ -324,8 +320,7 @@ def readFilesRecursive(path):
             outputfile.write('<script>hljs.initHighlightingOnLoad();</script>\n')
             
             outputfile.write("<style>\n")
-            outputfile.w
-            rite("\timg { max-width:900px; }\n")
+            outputfile.write("\timg { max-width:900px; }\n")
             outputfile.write("\t.codeblock { \n\tbackground: #B0B0B0; padding:1px 10px 0px 10px; border-radius: 5px; overflow-x:auto; \n\t}\n")
             outputfile.write("\tcode {\n font-family: monospace; font-size: inherit; color: #202020; \n\t}\n")
             outputfile.write("\t.inlineCoed {\n font-family: monospace; font-size: inherit; color: #202020; \n\t}\n")
