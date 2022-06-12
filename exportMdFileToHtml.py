@@ -69,7 +69,7 @@ if(mainFileToExport == ""):
     print(args.download_images.help)
     quit()
 
-exportDir = args.output_dir + "/" + fileToFind.split('/')[-1].replace(".md","")
+exportDir = args.output_dir
 print("Path to export vault: " + str(exportDir) + "\n")
 
 if os.path.exists(exportDir) and os.path.isdir(exportDir):
@@ -102,12 +102,14 @@ def findRelPath(linkPath, currentFile):
         del pLinkRelRootList[0]
     return '/'.join(pLinkRelRootList)
 
+#Destination directory generated incorrectly 
 def copyFileToExport(fileToFind, currentFile, traverse=False):
     linkedFilePath=""
-    for path in Path('.').rglob(fileToFind):
+    for path in Path(vault).rglob(fileToFind):
         linkedFilePath=path
     if(linkedFilePath != ""):
-        destDir = os.path.join(exportDir,linkedFilePath)
+        relPath = findRelPath(linkedFilePath,currentFile)
+        destDir = os.path.join(exportDir,relPath)
         Path(os.path.dirname(destDir)).mkdir(parents=True, exist_ok=True)
         
         if(linkedFilePath not in filesAllreadyCopied): #prevent circle ref
@@ -120,39 +122,53 @@ def copyFileToExport(fileToFind, currentFile, traverse=False):
 
 def findMdFile(line, currentFile):
     pattern = re.compile(r"(?<!!)\[\[([^|\]]*)(?:\|([^\]]*))?\]\]")
-    for (file) in re.findall(pattern, line):
-        linkedFile = file[0].split("/")[-1]
-        linkFragments = linkedFile.split("#")
-        fileOnly = linkFragments[0]
+    for (linkText) in re.findall(pattern, line):
+        linkedFileTitleAndHeader = linkText[0].split("/")[-1]
+        linkedFileTHFragments = linkedFileTitleAndHeader.split("#")
+        linkedFileTitle = linkedFileTHFragments[0]
         ancor = ""
         #If the link already has an alias...
-        if(len(file[1]) >0):
+        if(len(linkText[1]) >1):
             #Capture the alias
-            alias = file[1]
+            alias = linkText[1]
+            #If the link also has a heading...
+            if(len(linkedFileTHFragments) >1):
+                #Capture and convert the heading for html
+                ancor = "#" + linkedFileTHFragments[1].replace(" ","_").replace("(","").replace(")","")
 
         #Else if the link points to a heading...
-        elif(len(linkedFile.split("#"))>1): 
+        elif(len(linkedFileTHFragments) >1): 
             #Capture and convert the heading for html
-            alias = linkedFile.split("#")[1].replace(" ","_").replace("(","").replace(")","")
+            alias = linkedFileTHFragments[1].replace(" ","_").replace("(","").replace(")","")
             ancor = "#" + alias
         # Else set the alias to the filename
         else:
-            alias = linkedFile.replace(".md","")
+            alias = linkedFileTitleAndHeader.replace(".md","")
 
         
  
             
 
         
-        newFile = copyFileToExport(fileOnly + '.md', currentFile, traverse=True) 
+        newFile = copyFileToExport(linkedFileTitle + '.md', currentFile, traverse=True) 
 
         #TODO Reconstruct the link text from it's parts to replace the markdown link with an html link
         #[[Path + Linked File + Header (+ |Alias)]]
         if(exportToHtml):
-            if(newFile and len(newFile)>0):
-                line = line.replace('[[' + linkedFile + ']]','<a href="./' + newFile + ".html" + ancor + '">' + alias + '</a>')
-            else: ##self ref
-                line = line.replace('[[' + linkedFile + ']]', '<a href="./' + fileOnly + ".md.html" +  ancor + '">' + alias + '</a>')
+            #If the link already has an alias...
+            if(len(linkText) >1): 
+                #Rebuild the link text with an alias.
+                linkAsWritten = linkText[0] + "|" + linkText[1]
+            #Otherwise...
+            else:
+                #Rebuild the link text without an alias.
+                linkAsWritten = linkText[0]
+
+
+            if(newFile and len(newFile)>0): #external ref
+                line = line.replace('[[' + linkAsWritten + ']]','<a href="./' + newFile + ".html" + ancor + '">' + alias + '</a>')
+            else: #self ref
+                line = line.replace('[[' + linkAsWritten + ']]', '<a href="./' + linkedFileTitle + ".md.html" +  ancor + '">' + alias + '</a>')
     return line
 
 seed(1)
