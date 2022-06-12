@@ -102,7 +102,6 @@ def findRelPath(linkPath, currentFile):
         del pLinkRelRootList[0]
     return '/'.join(pLinkRelRootList)
 
-#Destination directory generated incorrectly 
 def copyFileToExport(fileToFind, currentFile, traverse=False):
     linkedFilePath=""
     for path in Path(vault).rglob(fileToFind):
@@ -152,8 +151,7 @@ def findMdFile(line, currentFile):
         
         newFile = copyFileToExport(linkedFileTitle + '.md', currentFile, traverse=True) 
 
-        #TODO Reconstruct the link text from it's parts to replace the markdown link with an html link
-        #[[Path + Linked File + Header (+ |Alias)]]
+    
         if(exportToHtml):
             #If the link already has an alias...
             if(len(linkText) >1): 
