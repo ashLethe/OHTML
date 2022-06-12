@@ -420,23 +420,23 @@ if(exportToHtml):
         outputfile.write('<body style="background: #F0F0F0; ">\n')
 
         #Generate the folder structure as a list
-        for child in Path(exportDir).glob("*"):
-            relPath = os.path.commonpath() 
 
-
-
-        """
         filesAllreadyCopied.sort()
+        commonPath = os.path.commonpath(filesAllreadyCopied)
+        exportedFiles = []
+        for f in filesAllreadyCopied:
+            exportedFiles.append(str(f).replace(commonPath + "\\",""))
+
         outputfile.write("<ul>\n")
-        for f in str(filesAllreadyCopied[0]).replace("\\","/").split("/"):
+        for f in exportedFiles[0].replace("\\","/").split("/"):
             if('.md' in f):
-                outputfile.write('<li>' + '<a href="./' + str(filesAllreadyCopied[0]) + ".html" + '">' + str(f).replace(".md","") + '</a>' + '</li>\n')
+                outputfile.write('<li>' + '<a href="./' + str(exportedFiles[0]) + ".html" + '">' + str(f).replace(".md","") + '</a>' + '</li>\n')
             else:
                 outputfile.write('<li class="folderClass">' + str(f) + "</li>")
                 outputfile.write("<ul>")
-        lastFilePath = str(filesAllreadyCopied[0]).replace("\\","/").split("/")
+        lastFilePath = str(exportedFiles[0]).replace("\\","/").split("/")
         first = True
-        for currFile in filesAllreadyCopied:
+        for currFile in exportedFiles:
             if(not first):
                 for currFolder in str(currFile).replace("\\","/").split("/"):
                     if(len(lastFilePath) > 0 and currFolder == lastFilePath[0]):
@@ -453,9 +453,8 @@ if(exportToHtml):
                 lastFilePath = str(currFile).replace("\\","/").split("/")
             first = False
 
-        for i in str(filesAllreadyCopied[-1]).replace("\\","/").split("/"):
+        for i in str(exportedFiles[-1]).replace("\\","/").split("/"):
             outputfile.write("</ul>")
-        """
        
         outputfile.write("</body>\n")
         outputfile.write("</html>\n")
