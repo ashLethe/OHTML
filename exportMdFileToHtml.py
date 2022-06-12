@@ -75,7 +75,7 @@ print("Path to export vault: " + str(exportDir) + "\n")
 if os.path.exists(exportDir) and os.path.isdir(exportDir):
     shutil.rmtree(exportDir)
     
-destFile = os.path.join(exportDir,mainFileToExport.name)
+destFile = os.path.join(exportDir,str(mainFileToExport).replace("\\","/").replace(vault + "/",""))
 Path(os.path.dirname(destFile)).mkdir(parents=True, exist_ok=True)
 if (downloadImages):
     assetPath = os.path.join(exportDir,"downloaded_images","test")
@@ -422,10 +422,9 @@ if(exportToHtml):
         #Generate the folder structure as a list
 
         filesAllreadyCopied.sort()
-        commonPath = os.path.commonpath(filesAllreadyCopied)
         exportedFiles = []
         for f in filesAllreadyCopied:
-            exportedFiles.append(str(f).replace(commonPath + "\\",""))
+            exportedFiles.append(str(f).replace("\\","/").replace(vault + "/",""))
 
         outputfile.write("<ul>\n")
         for f in exportedFiles[0].replace("\\","/").split("/"):
