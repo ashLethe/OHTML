@@ -66,7 +66,7 @@ else:
 
 if(mainFileToExport == ""):
     print("File not found!\nPlease specify an index file.")
-    print("%(help)")
+    print(args.download_images.help)
     quit()
 
 exportDir = args.output_dir + "/" + fileToFind.split('/')[-1].replace(".md","")
@@ -365,9 +365,9 @@ def readFilesRecursive(path):
                     line = html.escape(line)
                 outputfile.write(line)
             outputfile.write("</div>\n")
-            b = str(findRelPath(".",path))
+            b = str(findRelPath(vault,path))
             outputfile.write('<div style="width:345px; padding-top: 20px;; position:absolute; top:0; left:0; overflow:auto;">\n')
-            outputfile.write('\t<iframe src="' + str(findRelPath(".",path))[:-1] + 'treeview.html" width="340px" frameBorder="0" height="900px"></iframe>\n')
+            outputfile.write('\t<iframe src="' + str(findRelPath(vault,path))[:-1] + 'treeview.html" width="340px" frameBorder="0" height="900px"></iframe>\n')
             outputfile.write("</div>\n")
 
             outputfile.write("</div>\n")
